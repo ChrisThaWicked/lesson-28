@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import ConfirmationModal from './ConfirmationModal';
 
 const MessageBoard = () => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [messageToDelete, setMessageToDelete] = useState(null);
 
-  // Function to fetch messages from the server
   const fetchMessages = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
@@ -31,16 +33,12 @@ const MessageBoard = () => {
   }, []);
 
   useEffect(() => {
-    // Check if token is present in local storage
     const token = localStorage.getItem('token');
-    if (!token) {
-
-    } else {
-      fetchMessages(); // Fetch messages on component mount
+    if (token) {
+      fetchMessages();
     }
   }, [fetchMessages]);
 
-  // Function to handle form submission (posting a new message)
   const handleSubmit = async (event) => {
     event.preventDefault();
     setIsLoading(true);
@@ -63,10 +61,9 @@ const MessageBoard = () => {
       if (!response.ok) {
         throw new Error('Failed to post message');
       }
-      // Update local state with the new message
       const message = await response.json();
-      setMessages([...messages, message]); // Update messages state with the new message
-      setNewMessage(''); // Clear the message input after posting
+      setMessages([...messages, message]);
+      setNewMessage('');
     } catch (error) {
       console.error('Post message error:', error.message);
       setError('Failed to post message. Please try again.');
@@ -75,7 +72,6 @@ const MessageBoard = () => {
     }
   };
 
-  // Function to handle deleting a message
   const handleDelete = async (id) => {
     setIsLoading(true);
     setError('');
@@ -95,55 +91,79 @@ const MessageBoard = () => {
       if (!response.ok) {
         throw new Error('Failed to delete message');
       }
-      // Update local state to remove the deleted message
       setMessages(messages.filter(message => message.id !== id));
     } catch (error) {
       console.error('Delete message error:', error.message);
       setError('Failed to delete message. Please try again.');
     } finally {
       setIsLoading(false);
+      setShowModal(false);
+    }
+  };
+
+  const confirmDelete = (id) => {
+    setMessageToDelete(id);
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setMessageToDelete(null);
+  };
+
+  const confirmModal = () => {
+    if (messageToDelete) {
+      handleDelete(messageToDelete);
     }
   };
 
   return (
-    <div className="container mx-auto mt-8">
-      <h1 className="text-3xl font-semibold mb-4">Message Board</h1>
-      <div className="max-w-lg">
-        {error && <p className="text-red-500 mb-4">{error}</p>}
-        {messages.map(message => (
-          <div key={message.id} className="bg-gray-800 p-4 mb-4 rounded">
-            <div className="flex justify-between items-center">
-              <p className="text-gray-300">{message.user ? message.user.email : 'Anonymous'}</p>
-              <button
-                className="text-sm text-red-500 hover:text-red-200"
-                onClick={() => handleDelete(message.id)}
-                disabled={isLoading}
-              >
-                Delete
-              </button>
+    <div className="flex items-center justify-center min-h-screen bg-gray-900">
+      <div className="bg-gray-800 p-8 rounded-lg shadow-lg w-full max-w-2xl">
+        <h1 className="text-3xl font-semibold mb-6 text-center text-white">Message Board</h1>
+        <div className="max-w-lg mx-auto">
+          {error && <p className="text-red-500 mb-4 text-center">{error}</p>}
+          {messages.map(message => (
+            <div key={message.id} className="bg-gray-700 p-4 mb-4 rounded">
+              <div className="flex justify-between items-center">
+                <p className="text-gray-300">{message.user ? message.user.email : 'Anonymous'}</p>
+                <button
+                  className="text-sm text-red-500 hover:text-red-200"
+                  onClick={() => confirmDelete(message.id)}
+                  disabled={isLoading}
+                >
+                  Delete
+                </button>
+              </div>
+              <p className="text-gray-200 mt-2">{message.text}</p>
             </div>
-            <p className="text-gray-200 mt-2">{message.text}</p>
-          </div>
-        ))}
-      </div>
-      <form onSubmit={handleSubmit} className="max-w-lg mt-4">
-        <textarea
-          rows="4"
-          placeholder="Write your message..."
-          value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
-          className="w-full p-2 border border-gray-300 rounded mb-4"
-          style={{ color: 'black' }} // Set text color to black
+          ))}
+        </div>
+        <form onSubmit={handleSubmit} className="mt-6">
+          <textarea
+            rows="4"
+            placeholder="Write your message..."
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            className="w-full p-2 border border-gray-600 rounded mb-4 bg-gray-700 text-white"
+            required
+          />
+          <button
+            type="submit"
+            className={`bg-green-500 text-white py-2 px-4 rounded w-full hover:bg-green-600 ${
+              isLoading ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Posting...' : 'Post Message'}
+          </button>
+        </form>
+        <ConfirmationModal
+          show={showModal}
+          onClose={closeModal}
+          onConfirm={confirmModal}
         />
-        <button
-          type="submit"
-          className="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600"
-          disabled={isLoading}
-        >
-          {isLoading ? 'Posting...' : 'Post Message'}
-        </button>
-        {error && <p className="text-red-500 mt-2">{error}</p>}
-      </form>
+      </div>
     </div>
   );
 };

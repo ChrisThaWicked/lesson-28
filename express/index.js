@@ -1,81 +1,3 @@
-/*require('dotenv').config();
-const express = require("express");
-const cors = require("cors");
-const { PrismaClient } = require("@prisma/client");
-const jwt = require("jsonwebtoken");
-const bcrypt = require("bcryptjs");
-
-const app = express();
-const prisma = new PrismaClient();
-const port = 4000;
-
-app.use(express.json());
-app.use(cors());
-
-// Middleware to verify JWT token
-const verifyToken = (req, res, next) => {
-    const token = req.headers["x-access-token"];
-    if (!token) return res.status(401).send({ error: "No token provided." });
-
-    jwt.verify(token, process.env.SECRET_KEY, (error, decoded) => {
-        if (error) return res.status(401).send({ error: "Invalid token." });
-        req.userId = decoded.userId;
-        next();
-    });
-};
-
-// Endpoint to get secret-sauce for authenticated users
-app.get('/secret-sauce', verifyToken, async (req, res) => {
-    try {
-        const user = await prisma.user.findUnique({ where: { id: req.userId } });
-        if (!user) return res.status(404).send({ error: "User not found." });
-        
-        res.send({ secretSauce: "Smiling more.", email: user.email });
-    } catch (error) {
-        res.status(500).send({ error: "An error occurred." });
-    }
-});
-
-// Endpoint to register a new user
-app.post('/register', async (req, res) => {
-    const { email, password, fullName } = req.body;
-    if (!email || !password || !fullName) return res.status(400).send({ error: "Empty fields." });
-
-    try {
-        const hashedPassword = bcrypt.hashSync(password, 10);
-        const user = await prisma.user.create({
-            data: { email, password: hashedPassword, fullName }
-        });
-        res.send({ success: `Account created with ${user.email}` });
-    } catch (error) {
-        console.error(error);
-        res.status(500).send({ error: "An error occurred. Try again later." });
-    }
-});
-
-// Endpoint to login a user
-app.post('/login', async (req, res) => {
-    const { email, password } = req.body;
-    if (!email || !password) return res.status(400).send({ error: "Empty fields." });
-
-    try {
-        const user = await prisma.user.findUnique({ where: { email } });
-        if (!user) return res.status(404).send({ error: "Account with that email doesn't exist." });
-
-        const passwordValid = await bcrypt.compare(password, user.password);
-        if (!passwordValid) return res.status(401).send({ error: "Invalid password." });
-
-        const token = jwt.sign({ userId: user.id }, process.env.SECRET_KEY, { expiresIn: "1h" });
-        res.send({ token, user });
-    } catch (error) {
-        console.error(error);
-        res.status(500).send({ error: "An error occurred. Try again later." });
-    }
-});
-
-// Start the server
-app.listen(port, () => console.log("Server running on port", port));*/
-
 require('dotenv').config();
 const express = require('express');
 const jwt = require('jsonwebtoken');
@@ -214,6 +136,47 @@ app.delete('/messages/:id', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Delete message error:', error.message);
     res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Endpoint to fetch all quizzes
+app.get('/quizzes', async (req, res) => {
+  try {
+    const quizzes = await prisma.quiz.findMany({
+      include: {
+        questions: true,
+      },
+    });
+
+    // Check if quizzes array is empty
+    if (!quizzes || quizzes.length === 0) {
+      return res.status(404).json({ error: 'No quizzes found' });
+    }
+
+    res.json(quizzes);
+  } catch (error) {
+    console.error('Fetch quizzes error:', error.message);
+    res.status(500).json({ error: 'An error occurred. Try again later.' });
+  }
+});
+
+// Endpoint to submit quiz answers
+app.post('/submit-answer', authenticateToken, async (req, res) => {
+  const { quizId, answer } = req.body;
+  if (!quizId || !answer) {
+    return res.status(400).json({ error: 'Empty fields.' });
+  }
+
+  try {
+    // Implement logic to store submitted answers (example)
+    // For demonstration purposes, assume answers are stored in database
+    // Replace with your own logic based on quiz and answer schema
+    // const submittedAnswer = await prisma.answer.create({ data: { quizId, userId: req.user.id, answer } });
+    
+    res.json({ message: 'Answer submitted successfully.' });
+  } catch (error) {
+    console.error('Submit answer error:', error.message);
+    res.status(500).json({ error: 'An error occurred. Try again later.' });
   }
 });
 

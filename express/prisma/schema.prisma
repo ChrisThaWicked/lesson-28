@@ -4,9 +4,6 @@
 // Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
-// schema.prisma
-// schema.prisma
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -28,7 +25,28 @@ model Message {
   id        Int      @id @default(autoincrement())
   text      String
   createdAt DateTime @default(now())
-  // Define other fields as needed
   userId    Int
   user      User     @relation(fields: [userId], references: [id])
+}
+
+model Quiz {
+  id          Int       @id @default(autoincrement())
+  title       String
+  description String?
+  questions   Question[]
+}
+
+model Question {
+  id      Int     @id @default(autoincrement())
+  text    String
+  quizId  Int
+  quiz    Quiz    @relation(fields: [quizId], references: [id])
+  answers Answer[]
+}
+
+model Answer {
+  id         Int      @id @default(autoincrement())
+  text       String
+  questionId Int
+  question   Question @relation(fields: [questionId], references: [id])
 }
